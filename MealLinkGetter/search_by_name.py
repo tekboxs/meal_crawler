@@ -50,25 +50,26 @@ def get_script_from_page_by_name(base_url: str, query: str, time_out: int, drive
         driver.get(base_url + f'?q={query}&tbm=isch')
         wait = WebDriverWait(driver, time_out)
         script_elements = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "script")))
-        image_url_pattern = r"https:[^\s]+?\.(?:jpg|png)[^\s]+?"
+        pattern = r'https://[^"\']+?\.(?:jpg|jpeg|png|gif|bmp|webp)'
 
         image_urls = []
         for script_element in script_elements:
             try:
                 script_content = script_element.get_attribute("innerHTML")
-                urls_found = re.findall(image_url_pattern, script_content)
-                image_urls.extend(urls_found)
+                urls_found = re.findall(pattern, script_content)
+                if urls_found:
+                    image_urls.extend(urls_found)
+                    break
 
             except Exception:
                 pass
 
         for url in image_urls:
-            x = (str(url).split('https://'))
-            if len(x) >= 3:
-                return 'https://' + x[2].rstrip(r'["?]')
+            # print(url)
+            return url
 
 
     except Exception as e:
-        print(f"Erro ao conectar a {query}")
+        # print(f"Erro ao conectar a {query}")
         meal_error_logger.log_error(ERROR_LOG_FILE, f'{query} {e}')
         return None

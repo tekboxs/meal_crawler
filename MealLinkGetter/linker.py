@@ -1,20 +1,21 @@
 import logging
+import re
 from datetime import datetime
 
 import undetected_chromedriver
+from selenium import webdriver
 
 from MealLinkGetter import SEARCH_ENGINE, DOWNLOAD_DELAY, TIME_OUT
-from MealLinkGetter.extract_image import extract_image_url_from_html, extract_image_url_from_script
+# from MealLinkGetter.extract_image import extract_image_url_from_script
 from MealLinkGetter.search_by_name import get_script_from_page_by_name
 from product_model import ProductModel
 
 
-# dont thread this
 def get_image_src_by_name(product_list: list[ProductModel]) -> list[ProductModel]:
     driver = undetected_chromedriver.Chrome(headless=True)
+
     result_list = product_list.copy()
     start = datetime.now()
-    logging.info(f'Starting images link getter: {start} total itens = {len(product_list)}')
     for index, product in enumerate(product_list):
         link = get_script_from_page_by_name(SEARCH_ENGINE, product.descricao, TIME_OUT, driver)
         result_list[index].link = link
@@ -25,9 +26,28 @@ def get_image_src_by_name(product_list: list[ProductModel]) -> list[ProductModel
     return result_list
 
 
-def get_image_src_by_name_old(product: ProductModel) -> ProductModel:
-    image_html_raw = get_html_by_name(SEARCH_ENGINE, product.descricao, DOWNLOAD_DELAY)
-    product.link = extract_image_url_from_html(image_html_raw)
-    if product.link is None:
-        logging.info(f'product: {product.id} CANT extract src')
+def clean_product_name(name: str) -> str:
+    product_name = re.sub(r'((\w+[.:,]?)(\d+))|(\w+\.\b)', '', name)
+    product_name = product_name.replace('-', '')
+    product_name = product_name.replace('+', '')
+    product_name = product_name.replace('#', '')
+    product_name = product_name.replace('/', '')
+    return product_name
+
+
+def get_image_src_by_name_single(product: ProductModel) -> ProductModel:
+    options = webdriver.ChromeOptions()
+
+    options.add_argument("-headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+    driver = webdriver.Chrome(options=options)
+
+    link = get_script_from_page_by_name(SEARCH_ENGINE, clean_product_name(product.descricao), TIME_OUT, driver)
+    product.link = link
+    driver.quit()
+    # logging.info(f'Finished images link getter total time: {datetime.now() - start}')
+
     return product

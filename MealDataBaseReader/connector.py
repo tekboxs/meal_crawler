@@ -9,9 +9,10 @@ from product_model import ProductModel
 def db_connector() -> list[ProductModel]:
     cursor = connect_sql_server(connection_configs)
 
-    product_query = 'SELECT REFERENCIA, [NOME PRODUTO] FROM produtos;'
+    product_query = 'SELECT [Cód prod], [Nome produto] FROM produtos;'
 
-    query_result = cursor.execute(product_query)
+    query_result = [list(item) for item in cursor.execute(product_query).fetchall()]
+
 
     columns = ['id', 'description']
 
